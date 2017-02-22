@@ -1,0 +1,70 @@
+import sys, ephem, sqlite3
+import datetime, time
+from twitter import *
+
+def main():
+	db = sqlite3.connect('us_only.sq3')
+	c = db.cursor()
+	#twitter app info
+	OAUTH_TOKEN = '2444653531-B1O3FimBemtb7pII7rvut7PvSO9o0n8P3zfuCWx'
+	OAUTH_SECRET = '0ETZOzs9pSPMbXqXoHrocyE5HceQhcDShkvbSDcTAfRyP'
+	CONSUMER_KEY = '2WkpwwOdegkaUrcvUbGKAbNrw'
+	CONSUMER_SECRET = 'wDiS5uOEJUHRtOpJUnTWlByEi3wVUFTKAtw3AG9tgnEuUzVNJ7'
+	t = Twitter(
+            auth=OAuth(OAUTH_TOKEN, OAUTH_SECRET,
+                       CONSUMER_KEY, CONSUMER_SECRET)
+           )
+	
+	cityInput = (sys.argv[1])
+	stateInput = (sys.argv[2])
+	# selectings longitude,latitude, and time zone from database based on city and state from input
+	c.execute('select longitude, latitude, time_zone from sol_places where uc_name=:city and region=:state', {"city": cityInput.upper(), "state":'US/' + stateInput.upper()})
+	longitude, latitude, timezone = c.fetchone( ) # Gets row from c.execute and assigns the values
+	
+	place = ephem.Observer()
+	place.horizon = '-6' # CIVIL TWILIGHT
+	sun = ephem.Sun()
+	place.lat, place.lon = str(latitude), str(longitude)
+	
+	#time zones settings
+	if timezone.upper() == 'US/PACIFIC' or timezone.upper() == 'US/LOS_ANGELES':
+		place.date = datetime.datetime.utcnow() - datetime.timedelta(hours=7)
+		t1 = datetime.datetime.utcnow() - datetime.timedelta(hours=7)
+	elif timezone.upper() == 'US/EASTERN' or timezone.upper() == 'AMERICA/NEW_YORK' or timezone.upper() == 'AMERICA/INDIANAPOLIS':
+		place.date = datetime.datetime.utcnow() - datetime.timedelta(hours=4)
+		t1 = datetime.datetime.utcnow() - datetime.timedelta(hours=4)
+	elif timezone.upper() == 'US/MOUNTAIN'or timezone.upper() == 'AMERICA/DENVER' or timezone.upper() == 'US/ARIZONA':
+		place.date = datetime.datetime.utcnow() - datetime.timedelta(hours=6)
+		t1 = datetime.datetime.utcnow() - datetime.timedelta(hours=6)
+	elif timezone.upper() == 'US/HAWAII':
+		place.date = datetime.datetime.utcnow() - datetime.timedelta(hours=9)
+		t1 = datetime.datetime.utcnow() - datetime.timedelta(hours=9)
+	elif timezone.upper() == 'US/ALASKA':
+		place.date = datetime.datetime.utcnow() - datetime.timedelta(hours=8)
+		t1 = datetime.datetime.utcnow() - datetime.timedelta(hours=8)
+	else:
+		place.date = datetime.datetime.utcnow() - datetime.timedelta(hours=5)
+		t1 = datetime.datetime.utcnow() - datetime.timedelta(hours=5)
+		
+	# civil twilight rising and setting
+	rising = (place.previous_rising(ephem.Sun(), use_center=True))
+	setting = (place.next_setting(ephem.Sun(), use_center=True))
+	rising = str(rising)
+	setting = str(setting)
+	x = 0
+
+	while x < 1:
+		# t2 ~ when it is 3:00AM t3 ~ 4:00 AM
+		t2 = datetime.datetime(t1.year, t1.month, t1.day, 3, 0)
+		t3 = datetime.datetime(t1.year, t1.month, t1.day, 4, 0)
+		#Update status between 3 and 4 AM. then sleep for hour and check if its between the time again.
+		if t1 > t2 and t1 < t3:
+			outcome = str(rising)
+			t.statuses.update(status="The Civil Twilight rising in " + cityInput.title() + " is at " + rising + ". The Civil Twilight setting is at " + setting)
+			time.sleep(3600)
+		else:
+			time.sleep(3600)
+
+if __name__== '__main__':
+	main()
+	
