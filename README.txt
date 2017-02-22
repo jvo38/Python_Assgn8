@@ -25,7 +25,6 @@ How:
 
 4. If done correctly, the program should tweet out the sunrise and sunset time at 3:00AM. Twitter: @yimmyvo
 
-6. Once run, double click the pdf file and the binary tree should appear. ~Enjoy!
 
 
 
